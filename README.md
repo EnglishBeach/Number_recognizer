@@ -14,6 +14,8 @@ For GPU:
  After installation add TesseractOCR folder to PATH (in windows)
  * Install pythorch: https://pytorch.org/get-started/locally/
  * Install openCV for python: https://opencv.org/get-started/
+After installation openCV delete opencv-python-headless package:
+```pip uninstall opencv-python-headless```
  * Install easyOCR: https://github.com/JaidedAI/EasyOCR
  * Install python packadges for visualisation and animation:
     * matplotlib
