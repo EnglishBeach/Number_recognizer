@@ -15,9 +15,9 @@ For GPU:
  * Install pythorch: https://pytorch.org/get-started/locally/
  * Install openCV for python: https://opencv.org/get-started/
 
-After installation openCV delete opencv-python-headless package to fix crasshing with MethodNotImplemented error from cv2.selectROI function (it provide image cutting  interactively), because opencv-python-headless not implement GUI functions and used for servers:
+    After installation openCV delete opencv-python-headless package to fix crashing with MethodNotImplemented error from cv2.selectROI function (it provides image cutting interactively), because opencv-python-headless not implement GUI functions and used for servers:
 
-```pip uninstall opencv-python-headless```
+    ```pip uninstall opencv-python-headless```
  * Install easyOCR: https://github.com/JaidedAI/EasyOCR
  * Install python packadges for visualisation and animation:
     * matplotlib
