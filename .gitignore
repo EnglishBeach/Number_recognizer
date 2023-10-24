@@ -2,3 +2,4 @@
 Video_process/Videos/**
 Video_process/Images/**
 .vscode
+__pycache__
