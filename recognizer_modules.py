@@ -9,17 +9,12 @@ class ImageProcessor:
     _parametr_configurations = []
     parametrs = {}
 
-    def configure_process(
-        self,
-        video_capture,
-        start_frame: int = 0,
-        end_frame: int = 0,
-    ):
+    def configure_process(self, start_frame: int = 0, end_frame: int = 0):
 
         def update(val):
             time = TIME_slider.val
-            video_capture.set(cv2.CAP_PROP_POS_FRAMES, int(fps * time))
-            _, image = video_capture.read()
+            self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, int(fps * time))
+            _, image = self.video_capture.read()
 
             for slider in sliders:
                 slider_name = str(slider.label).split("'")[1]
@@ -40,14 +35,15 @@ class ImageProcessor:
             hspace=0,
             wspace=0,
         )
-        video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        _, image = video_capture.read()
+        self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        _, image = self.video_capture.read()
 
         plot = ax.imshow(self.process(image), cmap='binary')
 
         time_slider_ax = fig.add_axes([0.25, 0.1, 0.65, 0.03])
-        fps = int(video_capture.get(cv2.CAP_PROP_FPS))
-        max_len = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT) / fps) - 1
+        fps = int(self.video_capture.get(cv2.CAP_PROP_FPS))
+        max_len = int(
+            self.video_capture.get(cv2.CAP_PROP_FRAME_COUNT) / fps) - 1
         end_frame = max_len if not end_frame else end_frame
 
         TIME_slider = Slider(
@@ -85,9 +81,9 @@ class ImageProcessor:
         print('Configurate image processing')
         plt.show()
 
-    def select_window(self, video_capture, i_frame=0):
-        video_capture.set(cv2.CAP_PROP_POS_FRAMES, i_frame)
-        _, image = video_capture.read()
+    def select_window(self, i_frame=0):
+        self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, i_frame)
+        _, image = self.video_capture.read()
 
         for variable in self.variables:
             processed_image = self.process(image)
@@ -102,17 +98,12 @@ class ImageProcessor:
             variable['window'] = window
         cv2.destroyAllWindows()
 
-    def check_process(
-        self,
-        video_capture,
-        start_frame: int = 0,
-        end_frame: int = 0,
-    ):
+    def check_process(self, start_frame: int = 0, end_frame: int = 0):
 
         def update(val):
             time = TIME_slider.val
-            video_capture.set(cv2.CAP_PROP_POS_FRAMES, int(fps * time))
-            _, image = video_capture.read()
+            self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, int(fps * time))
+            _, image = self.video_capture.read()
 
             image_processed = self.process(image)
             stricted_images_list = self.strict(image_processed)
@@ -143,8 +134,8 @@ class ImageProcessor:
         time_slider_ax = axises[0]
         axises = axises[1:]
 
-        video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        _, image = video_capture.read()
+        self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        _, image = self.video_capture.read()
         image_processed = self.process(image)
         stricted_images_list = self.strict(image_processed)
 
@@ -158,8 +149,9 @@ class ImageProcessor:
                     cmap='binary',
                 ), )
             i += 1
-        fps = int(video_capture.get(cv2.CAP_PROP_FPS))
-        max_len = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT) / fps) - 1
+        fps = int(self.video_capture.get(cv2.CAP_PROP_FPS))
+        max_len = int(
+            self.video_capture.get(cv2.CAP_PROP_FRAME_COUNT) / fps) - 1
         end_frame = max_len if not end_frame else end_frame
 
         TIME_slider = Slider(
@@ -183,7 +175,8 @@ class ImageProcessor:
     def process(self, image):
         raise NotImplementedError
 
-    def __init__(self):
+    def __init__(self, video_capture):
+        self.video_capture = video_capture
         all_fields = dict(self.__class__.__dict__)
         self._parametr_configurations = {
             key: value
