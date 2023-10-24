@@ -116,9 +116,13 @@ class ImageProcessor:
 
             image_processed = self.process(image)
             stricted_images_list = self.strict(image_processed)
-            for i in range(n_variables):
-                plots[i].set_data(stricted_images_list[i])
+
+            i = 0
+            for variable in self.variables:
+                var_name = variable['name']
+                plots[i].set_data(stricted_images_list[var_name])
                 plots[i].autoscale()
+                i += 1
 
             fig.canvas.draw_idle()
 
@@ -143,11 +147,17 @@ class ImageProcessor:
         _, image = video_capture.read()
         image_processed = self.process(image)
         stricted_images_list = self.strict(image_processed)
-        plots = [
-            axises[i].imshow(stricted_images_list[i], cmap='binary')
-            for i in range(n_variables)
-        ]
 
+        plots = []
+        i = 0
+        for variable in self.variables:
+            var_name = variable['name']
+            plots.append(
+                axises[i].imshow(
+                    stricted_images_list[var_name],
+                    cmap='binary',
+                ), )
+            i += 1
         fps = int(video_capture.get(cv2.CAP_PROP_FPS))
         max_len = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT) / fps) - 1
         end_frame = max_len if not end_frame else end_frame
@@ -164,10 +174,10 @@ class ImageProcessor:
         plt.show()
 
     def strict(self, image):
-        images = []
+        images = {}
         for variable in self.variables:
             x, y, dx, dy = variable.get('window',(0,0,image.shape[1],image.shape[0]))
-            images.append(image[y:y + dy, x:x + dx])
+            images[variable['name']] = image[y:y + dy, x:x + dx]
         return images
 
     def process(self, image):
