@@ -5,7 +5,6 @@ from matplotlib.widgets import Slider
 
 
 class ImageProcessor:
-    variables = []
     _parametr_configurations = []
     parametrs = {}
 
@@ -85,17 +84,17 @@ class ImageProcessor:
         self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, i_frame)
         _, image = self.video_capture.read()
 
-        for variable in self.variables:
+        for variable in self.variable_windows:
             processed_image = self.process(image)
             processed_image = cv2.bitwise_not(processed_image)
             # TODO: make border color=red
             window = cv2.selectROI(
-                f"Select {variable['name']}",
+                f"Select {variable}",
                 processed_image,
                 fromCenter=False,
                 showCrosshair=True,
             )
-            variable['window'] = window
+            self.variable_windows[variable] = window
         cv2.destroyAllWindows()
 
     def check_process(self, start_frame: int = 0, end_frame: int = 0):
@@ -109,17 +108,15 @@ class ImageProcessor:
             stricted_images_list = self.strict(image_processed)
 
             i = 0
-            for variable in self.variables:
-                var_name = variable['name']
-                plots[i].set_data(stricted_images_list[var_name])
+            for variable in self.variable_windows:
+                plots[i].set_data(stricted_images_list[variable])
                 plots[i].autoscale()
                 i += 1
 
             fig.canvas.draw_idle()
 
-        n_variables = len(self.variables)
 
-        fig, axises = plt.subplots(nrows=n_variables + 1)
+        fig, axises = plt.subplots(nrows=len(self.variable_windows) + 1)
         fig.set_size_inches(5, 5)
         fig.subplots_adjust(
             left=0.1,
@@ -141,11 +138,10 @@ class ImageProcessor:
 
         plots = []
         i = 0
-        for variable in self.variables:
-            var_name = variable['name']
+        for variable in self.variable_windows:
             plots.append(
                 axises[i].imshow(
-                    stricted_images_list[var_name],
+                    stricted_images_list[variable],
                     cmap='binary',
                 ), )
             i += 1
@@ -165,17 +161,17 @@ class ImageProcessor:
         TIME_slider.on_changed(update)
         plt.show()
 
-    def strict(self, image):
+    def strict(self, image:np.ndarray)->np.ndarray:
         images = {}
-        for variable in self.variables:
-            x, y, dx, dy = variable.get('window',(0,0,image.shape[1],image.shape[0]))
-            images[variable['name']] = image[y:y + dy, x:x + dx]
+        for variable,window in self.variable_windows.items():
+            x, y, dx, dy = window
+            images[variable] = image[y:y + dy, x:x + dx]
         return images
 
-    def process(self, image):
+    def process(self, image:np.ndarray)->np.ndarray:
         raise NotImplementedError
 
-    def __init__(self, video_capture):
+    def __init__(self, video_capture,variables):
         self.video_capture = video_capture
         all_fields = dict(self.__class__.__dict__)
         self._parametr_configurations = {
@@ -188,6 +184,7 @@ class ImageProcessor:
             for key,
             value in self._parametr_configurations.items()
         }
+        self.variable_windows = {variable:0 for variable in  variables}
 
     def __getitem__(self, item):
         return self.parametrs[item]
@@ -195,5 +192,5 @@ class ImageProcessor:
     def __setitem__(self, item, value):
         self.parametrs[item] = value
 
-    def __call__(self, image):
+    def __call__(self, image)->np.ndarray:
         return self.process(image)
