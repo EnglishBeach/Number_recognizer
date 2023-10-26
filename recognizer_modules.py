@@ -82,7 +82,7 @@ class PreProcessor:
             sliders.append(slider)
             ofset -= 0.02
 
-        print('Configurate image processing')
+
         plt.show()
 
     def _build_selection_window(
@@ -127,7 +127,7 @@ class PreProcessor:
             if not capture_ready:
                 video_capture.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
                 capture_ready, frame = video_capture.read()
-            frame= self.process(frame,gray_image=False)
+            frame = self.process(frame, gray_image=False)
 
             # Show rectangle
             if show_drawing:
@@ -162,19 +162,13 @@ class PreProcessor:
     def select_window(self, video_capture, start_frame: int = 0):
         video_capture.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
         _, image = video_capture.read()
-        print(
-            'Press:',
-            '   Enter - save selection and continue',
-            '   R     - reset video timer',
-            '   Ecs/C - cancel selection',
-            sep='\n',
-        )
         for variable in self.variable_windows:
             point0,point1 = self._build_selection_window(
                 video_capture,window_name=f"Select {variable}",
                 start_frame=start_frame,
                 )
-            if (point0,point1)==((0,0),(0,0)): point1= image.shape[:2:][::-1]
+            if (point0, point1) == ((0, 0), (0, 0)):
+                point1 = image.shape[:2:][::-1]
             self.variable_windows[variable] = (point0, point1)
 
     def check_process(
@@ -255,7 +249,7 @@ class PreProcessor:
             images[variable] = image[y0:y1, x0:x1]
         return images
 
-    def process(self, image: np.ndarray,gray_image=True) -> np.ndarray:
+    def process(self, image: np.ndarray, gray_image=True) -> np.ndarray:
         raise NotImplementedError
 
     def __init__(self, variables):
@@ -288,24 +282,36 @@ class PostProcessor:
     _rules = dict(re_rule=None, min_rule=None, max_rule=None)
     active_checks_order = {}
 
-    def check(self, image, raw_value, rules):
+    def check(self, image, raw_value, rules, inside_parametrs={}):
         pattern_check = self.pattern(raw_value, **rules)
         if pattern_check is not None: return 'OK', pattern_check
 
+        self._raw_value = raw_value
         self._rules = rules
         self._image = image
-        self._raw_value = raw_value
+
+        self._inside_parametrs = inside_parametrs
+
         for check_name, check_func in self.active_checks_order.items():
             check_result = check_func(self)
             result = self.pattern(check_result, **rules)
             if result is not None: return check_name, result
-        return 'FULL', None
+        return 'error', None
 
     @staticmethod
     def _check_type(func=None, get=False, checks={}):
         if func is not None: checks.update({func.__name__: func})
         if get: return checks
         return func
+
+    @_check_type
+    def inner_processor_check(self) -> list[str]:
+        processed_image = self.inner_processor(self._image)
+
+        raw_value = [
+            value for _, value, _ in self._reader.readtext(processed_image)
+        ]
+        return raw_value
 
     def __init__(
         self,
@@ -325,12 +331,3 @@ class PostProcessor:
 
     def reload_processor(self, processor):
         self.inner_processor = copy.deepcopy(processor)
-
-    @_check_type
-    def inner_processor_check(self) -> list[str]:
-        processed_image = self.inner_processor(self._image)
-
-        raw_value = [
-            value for _, value, _ in self._reader.readtext(processed_image)
-        ]
-        return raw_value
