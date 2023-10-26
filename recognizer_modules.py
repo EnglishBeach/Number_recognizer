@@ -102,10 +102,12 @@ class PreProcessor:
             self.variable_windows[variable] = window
         cv2.destroyAllWindows()
 
-    def check_process(self,
-                      video_capture,
-                      start_frame: int = 0,
-                      end_frame: int = 0):
+    def check_process(
+        self,
+        video_capture,
+        start_frame: int = 0,
+        end_frame: int = 0,
+    ):
 
         def update(val):
             time = TIME_slider.val
@@ -209,7 +211,7 @@ class PostProcessor:
 
     def check(self, image, raw_value, rules):
         pattern_check = self.pattern(raw_value, **rules)
-        if pattern_check is not None: return '', pattern_check
+        if pattern_check is not None: return 'OK', pattern_check
 
         self._rules = rules
         self._image = image
@@ -218,7 +220,7 @@ class PostProcessor:
             check_result = check_func(self)
             result = self.pattern(check_result, **rules)
             if result is not None: return check_name, result
-        return 'error', None
+        return 'FULL', None
 
     @staticmethod
     def _check_type(func=None, get=False, checks={}):

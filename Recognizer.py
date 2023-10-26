@@ -23,7 +23,7 @@ import recognizer_modules
 ##########               INPUTS               ##########
 ########################################################
 
-VIDEO_PATH = r"Examples\Not_processed-full_font\Video.avi"
+VIDEO_PATH = r"Experiments\MultiplyTemperature\Exp0(0)\Ready\Exp0_4.avi"
 # VIDEO_PATH = None
 
 # %%
@@ -163,4 +163,5 @@ for i_frame in frame_line:
 
 # %%
 ## Print
-print(pd.DataFrame(data))
+df=pd.DataFrame(data)
+df.to_csv('Data4.csv')
