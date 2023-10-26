@@ -6,7 +6,7 @@ from matplotlib.widgets import Slider
 
 
 class PreProcessor:
-    _parametr_configurations = []
+    parametr_configurations = []
     parametrs = {}
 
     def configure_process(
@@ -62,7 +62,7 @@ class PreProcessor:
 
         sliders = []
         ofset = 0.2
-        for parametr, diap in self._parametr_configurations.items():
+        for parametr, diap in self.parametr_configurations.items():
             slider_ax = fig.add_axes([ofset, 0.25, 0.03, 0.6])
 
             p_min = min(diap)
@@ -85,11 +85,13 @@ class PreProcessor:
         print('Configurate image processing')
         plt.show()
 
-    def _build_selection_window(self, video_capture, window_name: str):
-        print('Press:',
-              '    Enter',
-              '   R to cancel selection',
-              '   Ecs or C to cancel selection')
+    def _build_selection_window(
+        self,
+        video_capture,
+        window_name: str = 'Selection window',
+        start_frame: int = 0,
+    ):
+
         cv2.namedWindow(window_name)
         # if not cap.isOpened():
         #     raise NameError
@@ -121,11 +123,11 @@ class PreProcessor:
 
         while True:
             capture_ready, frame = video_capture.read()
-
             # Reset timer when video ends
             if not capture_ready:
-                video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                video_capture.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
                 capture_ready, frame = video_capture.read()
+            frame= self.process(frame,gray_image=False)
 
             # Show rectangle
             if show_drawing:
@@ -135,6 +137,7 @@ class PreProcessor:
                           0 if point1[1] < 0 else
                           (point1[1]
                            if point1[1] < frame.shape[0] else frame.shape[0]))
+
                 cv2.rectangle(frame, point0, point1, blue_color, 2)
             cv2.imshow(window_name, frame)
 
@@ -152,19 +155,26 @@ class PreProcessor:
 
             # Pressed r to reset video timer
             elif keyboard in [ord('r'), ord('R')]:
-                video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                video_capture.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
         cv2.destroyAllWindows()
         return point0, point1
 
-    def select_window(self, video_capture, i_frame=0):
-        video_capture.set(cv2.CAP_PROP_POS_FRAMES, i_frame)
+    def select_window(self, video_capture, start_frame: int = 0):
+        video_capture.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
         _, image = video_capture.read()
-
+        print(
+            'Press:',
+            '   Enter - save selection and continue',
+            '   R     - reset video timer',
+            '   Ecs/C - cancel selection',
+            sep='\n',
+        )
         for variable in self.variable_windows:
-            processed_image = self.process(image)
-            processed_image = cv2.bitwise_not(processed_image)
-            point0,point1 = self._build_selection_window(video_capture,window_name=f"Select {variable}")
-
+            point0,point1 = self._build_selection_window(
+                video_capture,window_name=f"Select {variable}",
+                start_frame=start_frame,
+                )
+            if (point0,point1)==((0,0),(0,0)): point1= image.shape[:2:][::-1]
             self.variable_windows[variable] = (point0, point1)
 
     def check_process(
@@ -237,20 +247,20 @@ class PreProcessor:
     def strict(self, image: np.ndarray) -> np.ndarray:
         images = {}
         for variable, window in self.variable_windows.items():
-            (x0, y0),(x1, y1) = window
-            X,Y= (x0,x1),(y0,y1)
-            x0, x1 = min(X),max(X)
-            y0,y1 = min(Y),max(Y)
+            (x0, y0), (x1, y1) = window
+            X, Y = (x0, x1), (y0, y1)
+            x0, x1 = min(X), max(X)
+            y0, y1 = min(Y), max(Y)
 
             images[variable] = image[y0:y1, x0:x1]
         return images
 
-    def process(self, image: np.ndarray) -> np.ndarray:
+    def process(self, image: np.ndarray,gray_image=True) -> np.ndarray:
         raise NotImplementedError
 
     def __init__(self, variables):
         all_fields = dict(self.__class__.__dict__)
-        self._parametr_configurations = {
+        self.parametr_configurations = {
             key: value
             for key, value in all_fields.items()
             if key[0].isupper()
@@ -258,7 +268,7 @@ class PreProcessor:
         self.parametrs = {
             key: min(value)
             for key,
-            value in self._parametr_configurations.items()
+            value in self.parametr_configurations.items()
         }
         self.variable_windows = {variable: 0 for variable in variables}
 

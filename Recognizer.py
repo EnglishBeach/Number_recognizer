@@ -6,6 +6,7 @@
 ## Imports
 print("Importing...")
 import re
+import time
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -22,9 +23,11 @@ import recognizer_modules
 ########################################################
 ##########               INPUTS               ##########
 ########################################################
-
-VIDEO_PATH = r"Experiments\MultiplyTemperature\Exp0(0)\Ready\Exp0_4.avi"
+VIDEO_PATH = r"Examples\Test\Test_window.avi"
 # VIDEO_PATH = None
+
+# %% [markdown]
+# # Other
 
 # %%
 ## PreProcessor settings
@@ -35,13 +38,14 @@ variable_patterns = {'Viscosity': rules, 'Temperature': rules}
 class PreProcessor(recognizer_modules.PreProcessor):
     Blur = range(1, 50)
 
-    def process(self, image):
+    def process(self, image,white_black=True):
         image = cv2.blur(image, (int(self['Blur']), int(self['Blur'])))
-        try:
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        except:
-            pass
-        image = cv2.bitwise_not(image)
+        if white_black:
+            try:
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            except:
+                pass
+        # image = cv2.bitwise_not(image)
         return image
 
 if VIDEO_PATH is None:
@@ -87,7 +91,7 @@ class PostProcessor(recognizer_modules.PostProcessor):
 
     @recognizer_modules.PostProcessor._check_type
     def processor_sweep(self)->list[str]:
-        for i in range(1, 50):
+        for i in range(1, 10):
             self.inner_processor['Blur'] = i
             processed_img = self.inner_processor(self._image)
             raw_value = [
@@ -120,9 +124,6 @@ print([i for i in checker.all_checks])
 # checker.active_checks_order = {check:checker.all_checks[check] for check in ['inner_processor_check','value_combine']}
 
 # %%
-'afd'[1:2]
-
-# %%
 ## Recognize
 input_fps = input('Input number of frames per second: ')
 try:
@@ -153,7 +154,7 @@ for i_frame in frame_line:
                                raw_value=raw_value,
                                rules=rules)
         i_text[var] = result
-        i_text[var + '_mark'] = mark
+        i_text[var + '_verbose'] = mark
 
     if None in i_text.values():
         errors += 1
@@ -163,5 +164,4 @@ for i_frame in frame_line:
 
 # %%
 ## Print
-df=pd.DataFrame(data)
-df.to_csv('Data4.csv')
+print(pd.DataFrame(data))
