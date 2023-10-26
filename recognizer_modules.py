@@ -85,6 +85,77 @@ class PreProcessor:
         print('Configurate image processing')
         plt.show()
 
+    def _build_selection_window(self, video_capture, window_name: str):
+        print('Press:',
+              '    Enter',
+              '   R to cancel selection',
+              '   Ecs or C to cancel selection')
+        cv2.namedWindow(window_name)
+        # if not cap.isOpened():
+        #     raise NameError
+
+        # Our ROI, defined by two points
+        point0, point1 = (0, 0), (0, 0)
+        drawing = False  # True while ROI is actively being drawn by mouse
+        show_drawing = False  # True while ROI is drawn but is pending use or cancel
+        blue_color = (255, 0, 0)
+
+        def on_mouse(event, x, y, flags, userdata):
+            nonlocal point0, point1, drawing, show_drawing
+            if event == cv2.EVENT_LBUTTONDOWN:
+                # Left click down (select first point)
+                drawing = True
+                show_drawing = True
+                point0 = x, y
+                point1 = x, y
+            elif event == cv2.EVENT_MOUSEMOVE:
+                # Drag to second point
+                if drawing:
+                    point1 = x, y
+            elif event == cv2.EVENT_LBUTTONUP:
+                # Left click up (select second point)
+                drawing = False
+                point1 = x, y
+
+        cv2.setMouseCallback(window_name, on_mouse)
+
+        while True:
+            capture_ready, frame = video_capture.read()
+
+            # Reset timer when video ends
+            if not capture_ready:
+                video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                capture_ready, frame = video_capture.read()
+
+            # Show rectangle
+            if show_drawing:
+                point1 = (0 if point1[0] < 0 else
+                          (point1[0]
+                           if point1[0] < frame.shape[1] else frame.shape[1]),
+                          0 if point1[1] < 0 else
+                          (point1[1]
+                           if point1[1] < frame.shape[0] else frame.shape[0]))
+                cv2.rectangle(frame, point0, point1, blue_color, 2)
+            cv2.imshow(window_name, frame)
+
+            keyboard = cv2.waitKey(1)
+            # Pressed Enter or Space to cunsume
+            if keyboard in [13, 32]:
+                drawing = False
+                cv2.destroyAllWindows()
+                break
+
+            # Pressed C or Esc to cancel selection
+            elif keyboard in [ord('c'), ord('C'), 27]:
+                point0 = (0, 0)
+                point1 = (0, 0)
+
+            # Pressed r to reset video timer
+            elif keyboard in [ord('r'), ord('R')]:
+                video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        cv2.destroyAllWindows()
+        return point0, point1
+
     def select_window(self, video_capture, i_frame=0):
         video_capture.set(cv2.CAP_PROP_POS_FRAMES, i_frame)
         _, image = video_capture.read()
@@ -92,15 +163,9 @@ class PreProcessor:
         for variable in self.variable_windows:
             processed_image = self.process(image)
             processed_image = cv2.bitwise_not(processed_image)
-            # TODO: make border color=red
-            window = cv2.selectROI(
-                f"Select {variable}",
-                processed_image,
-                fromCenter=False,
-                showCrosshair=True,
-            )
-            self.variable_windows[variable] = window
-        cv2.destroyAllWindows()
+            point0,point1 = self._build_selection_window(video_capture,window_name=f"Select {variable}")
+
+            self.variable_windows[variable] = (point0, point1)
 
     def check_process(
         self,
@@ -172,8 +237,12 @@ class PreProcessor:
     def strict(self, image: np.ndarray) -> np.ndarray:
         images = {}
         for variable, window in self.variable_windows.items():
-            x, y, dx, dy = window
-            images[variable] = image[y:y + dy, x:x + dx]
+            (x0, y0),(x1, y1) = window
+            X,Y= (x0,x1),(y0,y1)
+            x0, x1 = min(X),max(X)
+            y0,y1 = min(Y),max(Y)
+
+            images[variable] = image[y0:y1, x0:x1]
         return images
 
     def process(self, image: np.ndarray) -> np.ndarray:
