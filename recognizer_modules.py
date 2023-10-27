@@ -292,25 +292,24 @@ class PreProcessor:
 
 
 class PostProcessor:
-    image = None
-    raw_value = []
     pattern = ''
-    inside_parametrs = {}
+    inside_info = {}
+    input_value = []
+    image = []
 
-    def check(self, image, raw_value, pattern, inside_parametrs={}):
-        pattern_result = self.pattern_check(raw_value, pattern)
-        if pattern_result is not None: return 'OK', pattern_result
-
+    def check(self, input_value, pattern,image, inside_info={}):
         self.pattern = pattern
-        self.raw_value = raw_value
-        self.image = image
-        self.inside_parametrs = inside_parametrs
-
+        pattern_check = self.isOK(input_value)
+        if pattern_check is not None: return 'OK', pattern_check
+        self.image =image
+        self.inside_parametrs = inside_info
         for check_name, check_func in self.active_checks_order.items():
             check_result = check_func(self)
-            result = self.pattern_check(check_result, pattern)
-            if result is not None: return check_name, result
+            if check_result is not None: return check_name, check_result
         return 'error', None
+
+    def convert(self, value: str):
+        raise NotImplementedError
 
     @staticmethod
     def check_type(func=None, get=False, checks={}):
@@ -318,25 +317,23 @@ class PostProcessor:
         if get: return checks
         return func
 
-    # @check_type
-    def pattern_check(self, value: list, pattern: str):
-        if value == []: return None
-        value = value[0]
-        value = ''
-        if re.match(pattern, value):
-            return self.value_converter(value)
+    def isOK(self, raw_value: list):
+        if raw_value == []: return None
+        value = raw_value[0]
+        if re.match(self.pattern, value):
+            return self.convert(value)
 
     @check_type
-    def inner_processor_check(self) -> list[str]:
+    def OK_inner(self):
         processed_image = self.inner_processor(self.image)
         raw_value = [
             value for _, value, _ in self.reader.readtext(processed_image)
         ]
-        return raw_value
+        return self.isOK(raw_value)
 
-    def __init__(self, processor: PreProcessor, reader):
-        self.inner_processor = copy.deepcopy(processor)
-        self.reader = reader
+    def __init__(self, processor: PreProcessor, reader: cv2.VideoCapture):
+        self.inner_processor: PreProcessor = copy.deepcopy(processor)
+        self.reader: cv2.VideoCapture = reader
         self.active_checks_order = self.check_type(get=True)
 
     @property

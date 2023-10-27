@@ -5,7 +5,6 @@
 # %%
 ## Imports
 print("Importing...")
-import re
 import os
 import pandas as pd
 from tqdm import tqdm
@@ -19,13 +18,21 @@ EXP_PATH, VIDEO_NAME, DATA_NAME = '', '', ''
 
 # %%
 ## Inputs
-EXP_PATH = r'Experiments\MultiplyTemperature\Exp1(2.5)'
-VIDEO_NAME = r"\Exp1_up.avi"
+# EXP_PATH = r'Experiments\MultiplyTemperature\Exp1(2.5)'
+# VIDEO_NAME = r"\Exp1_up.avi"
 
 variable_patterns = {
-    'Viscosity': r'-?\d{1,3}\.\d',
-    'Temperature': r'-?\d{1,3}\.\d',
+    'Viscosity': r'-?\d{1,3}[\.,]\d',
+    'Temperature': r'-?\d{1,3}[\.,]\d',
 }
+
+
+# %%
+class SafetySaver:
+
+    def __init__(self, video_path, data_path=None):
+        pass
+
 
 # %%
 if EXP_PATH + VIDEO_NAME == '':
@@ -89,52 +96,49 @@ processor.check_process(CAP)
 ## PostProcessor settings
 class ValuePostProcessor(PostProcessor):
 
-    def pattern_check(self, value: list, pattern: str):
-
-        if value == []: return None
-        value = value[0]
+    def convert(self, value: str):
         value = value.replace(',', '.')
-        if len(re.findall(pattern, value)) == 1:
-            try:
-                result = float(value)
-                return result
-            except ValueError:
-                print('\nStrange error',re.findall(pattern, value)[0])
-                return None
+        try:
+            result = float(value)
+            return result
+        except:
+            return None
 
     @PostProcessor.check_type
-    def processor_sweep(self) -> list[str]:
+    def image_sweep_check(self) -> list[str]:
         for i in range(1, 50):
             self.inner_processor['Blur'] = i
             processed_img = self.inner_processor(self.image)
             raw_value = [
                 value for _, value, _ in self.reader.readtext(processed_img)
             ]
-            result = self.pattern_check(raw_value, self.pattern)
-            if result is not None: return raw_value
-        return []
+            result = self.isOK(raw_value)
+            if result is not None: return result
 
     @PostProcessor.check_type
-    def value_combine(self) -> list[str]:
-        parts = len(self.raw_value)
+    def combine_check(self) -> list[str]:
+        parts = len(self.input_value)
         if parts == 1:
-            value = self.raw_value[0]
-            result = value[:3] + '.' + value[4:5]
+            value = self.input_value[0]
+            combined_value = value[:3] + '.' + value[4:5]
 
         elif parts == 2:
-            result = '.'.join(self.raw_value)
+            combined_value = '.'.join(self.input_value)
 
         elif parts == 3:
-            result = f'{self.raw_value[0]}.{self.raw_value[2]}'
+            combined_value = f'{self.input_value[0]}.{self.input_value[2]}'
 
-        return [result]
+        return self.isOK(combined_value)
 
 
 print('Starting recognizer...')
 reader = easyocr.Reader(['en'])
 checker = ValuePostProcessor(reader=reader, processor=processor)
-# checker.active_checks_order = {check:checker.all_checks[check] for check in ['inner_processor_check','value_combine']}
-print([i for i in checker.active_checks_order])
+# checker.active_checks_order =
+# {check:checker.all_checks[check]
+# for check in ['inner_processor_check','value_combine']}
+print('Active checks:\n', [i for i in checker.active_checks_order])
+
 # %%
 ## Recognize
 input_fps = input('Input number of frames per second: ')
@@ -160,9 +164,12 @@ for i_frame in frame_line:
         var_image = stricted_images[var]
         raw_value = [value for _, value, _ in reader.readtext(var_image)]
 
-        mark, result = checker.check(image=var_image,
-                               raw_value=raw_value,
-                               pattern=pattern)
+        verbose, result = checker.check(
+            input_value=raw_value,
+            pattern=pattern,
+            image = var_image,
+            )
+
         # if mark == 'error':
         #     # processor.configure_process(CAP,start_frame=i_frame)
         #     processor.select_window(CAP,start_frame=i_frame)
@@ -174,7 +181,7 @@ for i_frame in frame_line:
         #     mark= f'*{mark}'
 
         i_text[var] = result
-        i_text[var + '_verbose'] = mark
+        i_text[var + '_verbose'] = verbose
 
     if None in i_text.values():
         errors += 1
