@@ -16,9 +16,10 @@ For GPU:
  * Install openCV for python: https://opencv.org/get-started/
  * Install easyOCR: https://github.com/JaidedAI/EasyOCR
 
-   After installation easyOCR delete opencv-python-headless package to fix crashing with MethodNotImplemented error from cv2.selectROI function (it provides image cutting interactively), because opencv-python-headless not implement GUI functions and used for servers:
+   After installation easyOCR restart your computer  and after delete opencv-python-headless package to fix crashing with MethodNotImplemented error from cv2.selectROI function (it provides image cutting interactively), because opencv-python-headless not implement GUI functions and used for servers:
 
    ```pip uninstall opencv-python-headless```
+  I can't fix it yet, and can't understand this problem, but several combinations this actions may help to install
  * Install python packadges for visualisation and animation:
     * matplotlib
     * PyQt5(for animation in separate window)
@@ -39,3 +40,4 @@ Example requirements file in repository (for gpu and cpu)
  * Update image processor sweep to find best conditions faster
  * Add value corrector which uses adjacent frames
  * Add timer and zoom on video
+ * Contain it to docker image
