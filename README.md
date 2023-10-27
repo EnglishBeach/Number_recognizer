@@ -14,11 +14,11 @@ For GPU:
  After installation add TesseractOCR folder to PATH (in windows)
  * Install pythorch: https://pytorch.org/get-started/locally/
  * Install openCV for python: https://opencv.org/get-started/
-
-    After installation openCV delete opencv-python-headless package to fix crashing with MethodNotImplemented error from cv2.selectROI function (it provides image cutting interactively), because opencv-python-headless not implement GUI functions and used for servers:
-
-    ```pip uninstall opencv-python-headless```
  * Install easyOCR: https://github.com/JaidedAI/EasyOCR
+
+   After installation easyOCR delete opencv-python-headless package to fix crashing with MethodNotImplemented error from cv2.selectROI function (it provides image cutting interactively), because opencv-python-headless not implement GUI functions and used for servers:
+
+   ```pip uninstall opencv-python-headless```
  * Install python packadges for visualisation and animation:
     * matplotlib
     * PyQt5(for animation in separate window)
@@ -26,8 +26,8 @@ For GPU:
     * tqdm (for animate recognize process)
 Example requirements file in repository (for gpu and cpu)
 # Features:
- * Process every video frame to increase recognizing quality interactively 
- * Choose framerate you need to recognize 
+ * Process every video frame to increase recognizing quality interactively
+ * Choose framerate you need to recognize
  * Cut several areas to recognize numbers
  * Configure custom pattern using regexp to check the correctness of recognizing and use slightly wrong results to combine them to get fully correct with verbose
  * Configure smart searching of image preprocessing configurations in case uncorrect recognizing
