@@ -297,11 +297,11 @@ class PostProcessor:
     input_value = []
     image = []
 
-    def check(self, input_value, pattern,image, inside_info={}):
+    def check(self, input_value, pattern, image, inside_info={}):
         self.pattern = pattern
         pattern_check = self.isOK(input_value)
         if pattern_check is not None: return 'OK', pattern_check
-        self.image =image
+        self.image = image
         self.inside_parametrs = inside_info
         for check_name, check_func in self.active_checks_order.items():
             check_result = check_func(self)
@@ -344,10 +344,29 @@ class PostProcessor:
         self.inner_processor = copy.deepcopy(processor)
 
 
-def save_data(data: pd.DataFrame, path):
-    print('Saving...')
-    if os.path.isfile(path):
-        path = path[-4:] + '_new.csv'
-        print('Error - new save path:\n', path)
-    data.to_csv(path)
-    print('Saved.')
+class PathContainer:
+
+    def __init__(self, video_path='', data_path='', data_format='csv'):
+        if video_path == '':
+            while (video_path == '') or (not os.path.isfile(video_path)):
+                video_path = input(f"Input video path: ")
+        path_list = (video_path).split('\\')
+        folder_path = '\\'.join(path_list[:-1])
+        video_name = path_list[-1]
+        video_path = video_path.replace('\\', '\\')
+
+        if data_path == '':
+            data_name = video_name.split('.')[0]
+            while os.path.isfile(f'{folder_path}\\{data_name}.{data_format}'):
+                data_name = input(f"Data exists, input new name: ")
+            data_path = f'{folder_path}\\{data_name}.{data_format}'
+
+        self.data_path = data_path
+        self.video_path = video_path
+
+    def print_paths(self):
+        print(
+            f'Video    : {self.video_path}',
+            f'Data path: {self.data_path}',
+            sep='\n',
+        )

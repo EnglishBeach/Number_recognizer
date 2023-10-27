@@ -5,53 +5,22 @@
 # %%
 ## Imports
 print("Importing...")
-import os
 import pandas as pd
 from tqdm import tqdm
 
 import cv2
 import easyocr
 
-from recognizer_modules import PreProcessor, PostProcessor, save_data
-
-EXP_PATH, VIDEO_NAME, DATA_NAME = '', '', ''
+from recognizer_modules import PreProcessor, PostProcessor, PathContainer
 
 # %%
 ## Inputs
-# EXP_PATH = r'Experiments\MultiplyTemperature\Exp1(2.5)'
-# VIDEO_NAME = r"\Exp1_up.avi"
-
-variable_patterns = {
+PATHS = PathContainer()
+PATHS.print_paths()
+VARIABLE_PATTERNS = {
     'Viscosity': r'-?\d{1,3}[\.,]\d',
     'Temperature': r'-?\d{1,3}[\.,]\d',
 }
-
-
-# %%
-class SafetySaver:
-
-    def __init__(self, video_path, data_path=None):
-        pass
-
-
-# %%
-if EXP_PATH + VIDEO_NAME == '':
-    input_path = ''
-    while (input_path == '') and (not os.path.isfile(EXP_PATH + VIDEO_NAME)):
-        input_path = input(f"Input video path: ")
-    path_list = (input_path).split('\\')
-    EXP_PATH = '\\'.join(path_list[:-1])
-    VIDEO_NAME = '\\' + path_list[-1]
-DATA_NAME = VIDEO_NAME.split('.')[0] + '.csv'
-
-print(
-    'Recognize path:',
-    EXP_PATH + VIDEO_NAME,
-    f'Data save path:',
-    EXP_PATH + DATA_NAME,
-    sep='\n',
-)
-
 
 # %%
 ## PreProcessor settings
@@ -70,14 +39,14 @@ class ImageProcessor(PreProcessor):
         return image
 
 
-CAP = cv2.VideoCapture(EXP_PATH + VIDEO_NAME)
+CAP = cv2.VideoCapture(PATHS.video_path)
 
 FPS = int(CAP.get(cv2.CAP_PROP_FPS))
 LENTH = int(CAP.get(cv2.CAP_PROP_FRAME_COUNT) / FPS)
 CAP.set(cv2.CAP_PROP_POS_FRAMES, 0)
 _, START_FRAME = CAP.read()
 
-processor = ImageProcessor([i for i in variable_patterns])
+processor = ImageProcessor([i for i in VARIABLE_PATTERNS])
 print('Configurate image processing')
 processor.configure_process(CAP)
 print(
@@ -151,7 +120,7 @@ print('Recognizing:')
 errors = 0
 frame_line = tqdm(iterable=range(0, FPS * LENTH, int(FPS / read_fps)))
 frame_line.set_description(f'Errors: {errors: >4}')
-data = []
+DATA = []
 
 for i_frame in frame_line:
     CAP.set(cv2.CAP_PROP_POS_FRAMES, i_frame)
@@ -160,7 +129,7 @@ for i_frame in frame_line:
     processed_frame = processor(frame)
     stricted_images = processor.strict(processed_frame)
 
-    for var, pattern in variable_patterns.items():
+    for var, pattern in VARIABLE_PATTERNS.items():
         var_image = stricted_images[var]
         raw_value = [value for _, value, _ in reader.readtext(var_image)]
 
@@ -186,9 +155,9 @@ for i_frame in frame_line:
     if None in i_text.values():
         errors += 1
         frame_line.set_description(f'Errors: {errors: >4}')
-    data.append(i_text)
+    DATA.append(i_text)
 
 # %%
 ## Saving
-df = pd.DataFrame(data)
-save_data(df, EXP_PATH + DATA_NAME)
+df = pd.DataFrame(DATA)
+df.to_csv(PATHS.data_path)
