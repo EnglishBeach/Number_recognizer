@@ -120,13 +120,18 @@ class PreProcessor:
                 point1 = x, y
 
         cv2.setMouseCallback(window_name, on_mouse)
+        video_capture.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
 
+        i_frame = start_frame
         while True:
+            i_frame+=1
             capture_ready, frame = video_capture.read()
             # Reset timer when video ends
             if not capture_ready:
+                i_frame = start_frame
                 video_capture.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
                 capture_ready, frame = video_capture.read()
+
             frame = self.process(frame, gray_image=False)
 
             # Show rectangle
@@ -156,6 +161,9 @@ class PreProcessor:
             # Pressed r to reset video timer
             elif keyboard in [ord('r'), ord('R')]:
                 video_capture.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+            elif keyboard in [ord('q')]:
+                i_frame -=
+
         cv2.destroyAllWindows()
         return point0, point1
 
