@@ -1,4 +1,5 @@
 import os
+import re
 import copy
 import numpy as np
 import pandas as pd
@@ -291,35 +292,43 @@ class PreProcessor:
 
 
 class PostProcessor:
-    _image = None
-    _raw_value = []
-    current_pattern = ''
+    image = None
+    raw_value = []
+    pattern = ''
+    inside_parametrs = {}
 
     def check(self, image, raw_value, pattern, inside_parametrs={}):
-        self.current_pattern = pattern
         pattern_result = self.pattern_check(raw_value, pattern)
         if pattern_result is not None: return 'OK', pattern_result
 
-        self._raw_value = raw_value
-        self._image = image
-        self._inside_parametrs = inside_parametrs
+        self.pattern = pattern
+        self.raw_value = raw_value
+        self.image = image
+        self.inside_parametrs = inside_parametrs
 
         for check_name, check_func in self.active_checks_order.items():
-
             check_result = check_func(self)
             result = self.pattern_check(check_result, pattern)
             if result is not None: return check_name, result
         return 'error', None
 
     @staticmethod
-    def _check_type(func=None, get=False, checks={}):
+    def check_type(func=None, get=False, checks={}):
         if func is not None: checks.update({func.__name__: func})
         if get: return checks
         return func
 
-    @_check_type
+    # @check_type
+    def pattern_check(self, value: list, pattern: str):
+        if value == []: return None
+        value = value[0]
+        value = ''
+        if re.match(pattern, value):
+            return self.value_converter(value)
+
+    @check_type
     def inner_processor_check(self) -> list[str]:
-        processed_image = self.inner_processor(self._image)
+        processed_image = self.inner_processor(self.image)
         raw_value = [
             value for _, value, _ in self.reader.readtext(processed_image)
         ]
@@ -328,14 +337,11 @@ class PostProcessor:
     def __init__(self, processor: PreProcessor, reader):
         self.inner_processor = copy.deepcopy(processor)
         self.reader = reader
-        self.active_checks_order = self._check_type(get=True)
-
-    def pattern_check(self, value: list, pattern) -> float|None:
-        raise NotImplementedError
+        self.active_checks_order = self.check_type(get=True)
 
     @property
     def all_checks(self):
-        return self._check_type(get=True)
+        return self.check_type(get=True)
 
     def reload_processor(self, processor):
         self.inner_processor = copy.deepcopy(processor)

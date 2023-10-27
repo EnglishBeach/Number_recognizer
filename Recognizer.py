@@ -78,6 +78,7 @@ print(
     '   Enter - save selection and continue',
     '   R     - reset video timer',
     '   Ecs/C - cancel selection',
+    '   q/e   - time move',
     sep='\n',
 )
 processor.select_window(CAP)
@@ -101,30 +102,30 @@ class ValuePostProcessor(PostProcessor):
                 print('\nStrange error',re.findall(pattern, value)[0])
                 return None
 
-    @PostProcessor._check_type
+    @PostProcessor.check_type
     def processor_sweep(self) -> list[str]:
         for i in range(1, 50):
             self.inner_processor['Blur'] = i
-            processed_img = self.inner_processor(self._image)
+            processed_img = self.inner_processor(self.image)
             raw_value = [
                 value for _, value, _ in self.reader.readtext(processed_img)
             ]
-            result = self.pattern_check(raw_value, self.current_pattern)
+            result = self.pattern_check(raw_value, self.pattern)
             if result is not None: return raw_value
         return []
 
-    @PostProcessor._check_type
+    @PostProcessor.check_type
     def value_combine(self) -> list[str]:
-        parts = len(self._raw_value)
+        parts = len(self.raw_value)
         if parts == 1:
-            value = self._raw_value[0]
+            value = self.raw_value[0]
             result = value[:3] + '.' + value[4:5]
 
         elif parts == 2:
-            result = '.'.join(self._raw_value)
+            result = '.'.join(self.raw_value)
 
         elif parts == 3:
-            result = f'{self._raw_value[0]}.{self._raw_value[2]}'
+            result = f'{self.raw_value[0]}.{self.raw_value[2]}'
 
         return [result]
 
