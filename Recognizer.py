@@ -48,7 +48,7 @@ _, START_FRAME = CAP.read()
 
 processor = ImageProcessor([i for i in VARIABLE_PATTERNS])
 print('Configurate image processing')
-processor.configure_process(CAP)
+
 print(
     'Press:',
     '   Enter - save selection and continue',
@@ -57,8 +57,12 @@ print(
     '   q/e   - time move',
     sep='\n',
 )
-processor.select_window(CAP)
-processor.check_process(CAP)
+configure = True
+while configure:
+    processor.configure_process(CAP)
+    processor.select_window(CAP)
+    processor.check_process(CAP)
+    configure = False if input ('Continue (y for yes)? ')=='y' else True
 
 
 # %%
@@ -86,19 +90,25 @@ class ValuePostProcessor(PostProcessor):
 
     @PostProcessor.check_type
     def combine_check(self) -> list[str]:
-        parts = len(self.input_value)
-        if parts == 1:
+        n_parts = len(self.input_value)
+        combined_value =[]
+        if n_parts == 1:
             value = self.input_value[0]
             combined_value = value[:3] + '.' + value[4:5]
 
-        elif parts == 2:
+        elif n_parts == 2:
             combined_value = '.'.join(self.input_value)
 
-        elif parts == 3:
+        elif n_parts == 3:
             combined_value = f'{self.input_value[0]}.{self.input_value[2]}'
 
         return self.isOK(combined_value)
 
+input_fps = input('Input number of frames per second: ')
+try:
+    read_fps = float(input_fps)
+except:
+    read_fps = 1
 
 print('Starting recognizer...')
 reader = easyocr.Reader(['en'])
@@ -110,12 +120,6 @@ print('Active checks:\n', [i for i in checker.active_checks_order])
 
 # %%
 ## Recognize
-input_fps = input('Input number of frames per second: ')
-try:
-    read_fps = float(input_fps)
-except:
-    read_fps = 1
-
 print('Recognizing:')
 errors = 0
 frame_line = tqdm(iterable=range(0, FPS * LENTH, int(FPS / read_fps)))
@@ -154,10 +158,10 @@ for i_frame in frame_line:
 
     if None in i_text.values():
         errors += 1
-        frame_line.set_description(f'Errors: {errors: >4}')
+        frame_line.set_description(f'{errors: >4} errors')
     DATA.append(i_text)
 
 # %%
 ## Saving
 df = pd.DataFrame(DATA)
-df.to_csv(PATHS.data_path)
+df.dropna().to_csv(PATHS.data_path,index=0)
